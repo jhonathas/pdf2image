@@ -104,21 +104,38 @@ defmodule PDF2Image do
   end
 
   defp generate_args(path, opts) do
-    args = [
-      "-sDEVICE=#{opts[:device]}",
-      "-dFirstPage=#{opts[:page]}",
-      "-dLastPage=#{opts[:page]}",
-      "-dSAFER",
-      "-dBATCH",
-      "-dNOPAUSE",
-      if(opts[:fit_page], do: "-dPDFFitPage", else: nil),
-      "-o",
-      "-",
-      "-r#{opts[:resolution]}",
-      if(opts[:crop], do: "-dEPSCrop", else: nil),
-      "-q",
-      path
-    ]
+    page_args =
+      cond do
+        opts[:page_first] || opts[:page_last] ->
+          [
+            (if opts[:page_first], do: "-dFirstPage=#{opts[:page_first]}", else: nil),
+            (if opts[:page_last], do: "-dLastPage=#{opts[:page_last]}", else: nil)
+          ]
+    
+        opts[:page] ->
+          ["-dFirstPage=#{opts[:page]}", "-dLastPage=#{opts[:page]}"]
+    
+        true ->
+          []
+      end
+
+    args =
+      [
+        "-sDEVICE=#{opts[:device]}",
+        page_args,
+        "-dSAFER",
+        "-dBATCH",
+        "-dNOPAUSE",
+        if(opts[:fit_page], do: "-dPDFFitPage", else: nil),
+        "-o",
+        "-",
+        "-r#{opts[:resolution]}",
+        if(opts[:crop], do: "-dEPSCrop", else: nil),
+        "-q",
+        path
+      ]
+      |> List.flatten()
+      |> Enum.reject(&is_nil/1)
 
     {:ok, args |> Enum.filter(&(&1 != nil))}
   end
